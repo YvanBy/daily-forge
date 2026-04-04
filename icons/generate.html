@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Generate Icons</title>
+  <style>
+    body { font-family: sans-serif; padding: 30px; background: #f5f5f5; }
+    h2 { margin-bottom: 16px; }
+    canvas { display: block; margin: 10px 0; border: 1px solid #ddd; }
+    button { padding: 10px 20px; background: #111; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; margin-top: 8px; }
+    p { color: #555; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Daily Forge — Icon Generator</h2>
+  <p>Click the buttons to download icon-192.png and icon-512.png. Place both files in the <strong>icons/</strong> folder.</p>
+
+  <canvas id="c192" width="192" height="192"></canvas>
+  <button onclick="download('c192','icon-192.png')">Download icon-192.png</button>
+
+  <br><br>
+
+  <canvas id="c512" width="512" height="512"></canvas>
+  <button onclick="download('c512','icon-512.png')">Download icon-512.png</button>
+
+  <script>
+    function drawIcon(canvas) {
+      const s = canvas.width;
+      const ctx = canvas.getContext('2d');
+      const r = s * 0.15; // corner radius
+
+      // Background rounded rect
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.lineTo(s - r, 0);
+      ctx.quadraticCurveTo(s, 0, s, r);
+      ctx.lineTo(s, s - r);
+      ctx.quadraticCurveTo(s, s, s - r, s);
+      ctx.lineTo(r, s);
+      ctx.quadraticCurveTo(0, s, 0, s - r);
+      ctx.lineTo(0, r);
+      ctx.quadraticCurveTo(0, 0, r, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw flame using scaled coordinates (original design at 512x512)
+      const sc = s / 512;
+      ctx.save();
+      ctx.scale(sc, sc);
+      ctx.fillStyle = '#E8A838';
+
+      // Outer flame
+      ctx.beginPath();
+      ctx.moveTo(256, 420);
+      ctx.bezierCurveTo(192, 420, 144, 372, 144, 308);
+      ctx.bezierCurveTo(144, 266, 162, 242, 180, 218);
+      ctx.bezierCurveTo(186, 210, 189, 200, 185, 188);
+      ctx.bezierCurveTo(208, 208, 216, 240, 208, 268);
+      ctx.bezierCurveTo(226, 246, 234, 218, 230, 190);
+      ctx.bezierCurveTo(256, 214, 268, 252, 260, 288);
+      ctx.bezierCurveTo(276, 268, 282, 242, 278, 214);
+      ctx.bezierCurveTo(304, 240, 318, 278, 318, 316);
+      ctx.bezierCurveTo(328, 298, 330, 278, 324, 258);
+      ctx.bezierCurveTo(350, 284, 368, 322, 368, 364);
+      ctx.bezierCurveTo(368, 396, 315, 420, 256, 420);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inner highlight glow
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = '#F5C96A';
+      ctx.beginPath();
+      ctx.ellipse(256, 370, 44, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.restore();
+    }
+
+    const c192 = document.getElementById('c192');
+    const c512 = document.getElementById('c512');
+    drawIcon(c192);
+    drawIcon(c512);
+
+    function download(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = filename;
+      a.click();
+    }
+  </script>
+</body>
+</html>
