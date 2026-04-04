@@ -408,7 +408,7 @@ function initWhyView() {
   const view = document.getElementById('view-why');
   view.innerHTML = `
     <div class="why-wrap">
-      <p class="why-quote">Every morning I train the gap between stimulus and reaction. Every evening I review who I was in that gap. This is not productivity. This is becoming.</p>
+      <p class="why-quote">Every morning I train the gap between stimulus and reaction.<br>Every evening I review who I was in that gap.<br>This is not productivity. This is becoming.</p>
       <div class="why-list">
         <div class="why-item">
           <span class="why-star">✦</span>
