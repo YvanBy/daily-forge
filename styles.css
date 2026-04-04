@@ -444,6 +444,46 @@ body {
   opacity: 0.75;
 }
 
+/* ── Why view ────────────────────────────────────────── */
+.why-wrap {
+  padding: 36px 24px 48px;
+}
+
+.why-quote {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--primary);
+  font-weight: 400;
+  margin-bottom: 36px;
+  border-left: 3px solid var(--accent);
+  padding-left: 16px;
+}
+
+.why-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.why-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.why-star {
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.why-text {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--primary);
+}
+
 /* ── Toast ───────────────────────────────────────────── */
 .toast {
   position: fixed;
