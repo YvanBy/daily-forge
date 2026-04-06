@@ -444,6 +444,95 @@ body {
   opacity: 0.75;
 }
 
+/* ── Journal sections ────────────────────────────────── */
+.journal-fields {
+  padding-bottom: 8px;
+}
+
+.journal-field {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.journal-field:last-child {
+  border-bottom: none;
+}
+
+.journal-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.journal-textarea {
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--primary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  resize: none;
+  -webkit-appearance: none;
+}
+
+.journal-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.journal-value {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--primary);
+  white-space: pre-wrap;
+}
+
+/* ── Log journal entries ─────────────────────────────── */
+.log-fear-icon {
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.log-journal-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.log-journal-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.log-journal-item {
+  margin-bottom: 8px;
+}
+
+.log-journal-q {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.log-journal-a {
+  display: block;
+  font-size: 13px;
+  color: var(--primary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 /* ── Why view ────────────────────────────────────────── */
 .why-wrap {
   padding: 36px 24px 48px;

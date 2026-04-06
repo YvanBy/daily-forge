@@ -7,7 +7,7 @@ const HABITS = {
     { key: 'meditation_am',    label: 'Meditation + Prayer' },
     { key: 'sport_shower',     label: 'Sport + Shower' },
     { key: 'read_am',          label: 'Read' },
-    { key: 'prepare_day',      label: 'Prepare the day (Reflect OS)' },
+    { key: 'boot_os',          label: 'Boot up Operating System (e.g. reflect, prioritize)' },
     { key: 'eat_frog',         label: 'Eat that frog (MIT)' },
   ],
   evening: [
@@ -15,7 +15,7 @@ const HABITS = {
     { key: 'spaziergang',      label: 'Spaziergang' },
     { key: 'brush_teeth_pm',   label: 'Brush teeth' },
     { key: 'read_pm',          label: 'Read' },
-    { key: 'finish_day',       label: 'Finish the day (Clarify, Organize OS)' },
+    { key: 'shutdown_os',      label: 'Shut down Operating System (e.g. clarify, organize)' },
     { key: 'journaling',       label: 'Radical honest journaling' },
     { key: 'meditation_pm',    label: 'Meditation + Prayer' },
     { key: 'bed_11pm',         label: 'Go to bed at 11 pm' },
@@ -27,14 +27,31 @@ const HABITS = {
 const ALL_HABITS = [...HABITS.morning, ...HABITS.evening];
 const STREAK_THRESHOLD = 14;
 
+const MORNING_JOURNAL_FIELDS = [
+  { key: 'feel_now',   label: 'How do I feel right now?' },
+  { key: 'one_thing',  label: 'What is the ONE thing that would make today a success?' },
+  { key: 'avoiding',   label: 'What am I avoiding, and why?' },
+  { key: 'who_to_be',  label: 'Who do I need to be today?' },
+  { key: 'regret',     label: 'What would I regret not doing today?' },
+];
+
+const EVENING_JOURNAL_FIELDS = [
+  { key: 'how_was_day',    label: 'How was my day?' },
+  { key: 'did_i_do_it',    label: 'Did I do what I said I would do?' },
+  { key: 'learned',        label: 'What did I learn today that I didn\'t know this morning?' },
+  { key: 'wasted_energy',  label: 'Where did I waste energy on the wrong thing?' },
+  { key: 'grateful',       label: 'What am I grateful for that I almost missed?' },
+  { key: 'capture',        label: 'What needs to be captured before I sleep?' },
+];
+
 // ─── Database ─────────────────────────────────────────────────────────────────
 const db = new Dexie('DailyForge');
 db.version(1).stores({ entries: 'id,date,savedAt' });
 
 // ─── Module state ─────────────────────────────────────────────────────────────
-let todayEntry = null;  // saved entry for today (or null)
-let editMode   = false; // true when editing an existing day
-let formState  = {};    // live form state
+let todayEntry = null;
+let editMode   = false;
+let formState  = {};
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 function todayKey() {
@@ -47,7 +64,6 @@ function pad(n) {
 }
 
 function keyToDate(key) {
-  // Parse as local date (avoid UTC shift by appending noon time)
   return new Date(key + 'T12:00:00');
 }
 
@@ -80,11 +96,10 @@ async function computeStreak() {
   const map = {};
   entries.forEach(e => (map[e.id] = e));
 
-  const today = todayKey();
-  let streak = 0;
+  const today  = todayKey();
+  let streak   = 0;
   const cursor = new Date();
 
-  // If today not yet logged, start counting from yesterday
   if (!map[today]) cursor.setDate(cursor.getDate() - 1);
 
   while (true) {
@@ -98,10 +113,25 @@ async function computeStreak() {
 }
 
 // ─── Form state helpers ───────────────────────────────────────────────────────
+function emptyJournal(fields) {
+  const obj = {};
+  fields.forEach(f => (obj[f.key] = ''));
+  return obj;
+}
+
 function buildEmptyFormState() {
   const routines = {};
   ALL_HABITS.forEach(h => (routines[h.key] = false));
-  return { wakeTime: '07:00', lightsOffTime: '22:30', bedTime: '22:45', fearMapDone: false, fearMapContact: '', routines };
+  return {
+    wakeTime:       '07:00',
+    lightsOffTime:  '22:30',
+    bedTime:        '22:45',
+    fearMapDone:    false,
+    fearMapContact: '',
+    routines,
+    morningJournal: emptyJournal(MORNING_JOURNAL_FIELDS),
+    eveningJournal: emptyJournal(EVENING_JOURNAL_FIELDS),
+  };
 }
 
 function entryToFormState(entry) {
@@ -112,6 +142,8 @@ function entryToFormState(entry) {
     fearMapDone:    !!entry.fearMapDone,
     fearMapContact: entry.fearMapContact || '',
     routines:       { ...entry.routines },
+    morningJournal: { ...emptyJournal(MORNING_JOURNAL_FIELDS), ...(entry.morningJournal || {}) },
+    eveningJournal: { ...emptyJournal(EVENING_JOURNAL_FIELDS), ...(entry.eveningJournal || {}) },
   };
 }
 
@@ -133,7 +165,7 @@ function showToast(msg) {
 
 // ─── TODAY VIEW ───────────────────────────────────────────────────────────────
 async function initTodayView() {
-  const key = todayKey();
+  const key  = todayKey();
   todayEntry = (await db.entries.get(key)) || null;
   const streak = await computeStreak();
 
@@ -160,8 +192,10 @@ function renderTodayReadOnly(streak) {
     </div>
     ${sleepHtml(true)}
     ${fearMapHtml(true)}
+    ${journalHtml('morning', true)}
     ${habitsHtml('morning', true)}
     ${habitsHtml('evening', true)}
+    ${journalHtml('evening', true)}
     <div style="height: 32px;"></div>
   `;
 
@@ -182,8 +216,10 @@ function renderTodayForm(streak) {
     </div>
     ${sleepHtml(false)}
     ${fearMapHtml(false)}
+    ${journalHtml('morning', false)}
     ${habitsHtml('morning', false)}
     ${habitsHtml('evening', false)}
+    ${journalHtml('evening', false)}
     <div style="height: 88px;"></div>
     <div class="bottom-bar">
       <button class="save-btn" id="save-btn">Save Day</button>
@@ -216,6 +252,22 @@ function renderTodayForm(streak) {
   });
   fearContact.addEventListener('input', e => { formState.fearMapContact = e.target.value; });
 
+  // Morning journal textareas
+  MORNING_JOURNAL_FIELDS.forEach(f => {
+    const el = document.getElementById(`mj-${f.key}`);
+    if (!el) return;
+    el.value = formState.morningJournal[f.key];
+    el.addEventListener('input', e => { formState.morningJournal[f.key] = e.target.value; });
+  });
+
+  // Evening journal textareas
+  EVENING_JOURNAL_FIELDS.forEach(f => {
+    const el = document.getElementById(`ej-${f.key}`);
+    if (!el) return;
+    el.value = formState.eveningJournal[f.key];
+    el.addEventListener('input', e => { formState.eveningJournal[f.key] = e.target.value; });
+  });
+
   // Habit checkboxes
   ALL_HABITS.forEach(h => {
     const row = document.getElementById(`habit-${h.key}`);
@@ -232,7 +284,6 @@ function renderTodayForm(streak) {
     });
   });
 
-  // Save
   document.getElementById('save-btn').addEventListener('click', saveToday);
 }
 
@@ -295,6 +346,40 @@ function fearMapHtml(readOnly) {
     </div>`;
 }
 
+function journalHtml(period, readOnly) {
+  const isMorning = period === 'morning';
+  const fields    = isMorning ? MORNING_JOURNAL_FIELDS : EVENING_JOURNAL_FIELDS;
+  const title     = isMorning ? 'Morning Journal' : 'Evening Journal';
+  const stateKey  = isMorning ? 'morningJournal' : 'eveningJournal';
+  const prefix    = isMorning ? 'mj' : 'ej';
+
+  const fieldHtml = fields.map(f => {
+    const val = formState[stateKey][f.key];
+    if (readOnly) {
+      return val
+        ? `<div class="journal-field">
+            <div class="journal-label">${esc(f.label)}</div>
+            <div class="journal-value">${esc(val)}</div>
+           </div>`
+        : '';
+    }
+    return `
+      <div class="journal-field">
+        <label class="journal-label" for="${prefix}-${f.key}">${esc(f.label)}</label>
+        <textarea class="journal-textarea" id="${prefix}-${f.key}" rows="2" placeholder="${esc(f.label)}"></textarea>
+      </div>`;
+  }).join('');
+
+  // In read-only mode, skip the section entirely if nothing was written
+  if (readOnly && !fieldHtml.trim()) return '';
+
+  return `
+    <div class="section">
+      <div class="section-title">${title}</div>
+      <div class="journal-fields">${fieldHtml}</div>
+    </div>`;
+}
+
 function habitsHtml(group, readOnly) {
   const title = group === 'morning' ? 'Morning Routines' : 'Evening Routines';
   const rows = HABITS[group].map(h => {
@@ -316,7 +401,7 @@ function habitsHtml(group, readOnly) {
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 async function saveToday() {
-  const key = todayKey();
+  const key   = todayKey();
   const entry = {
     id:             key,
     date:           key,
@@ -326,12 +411,14 @@ async function saveToday() {
     fearMapDone:    formState.fearMapDone,
     fearMapContact: formState.fearMapContact,
     routines:       { ...formState.routines },
+    morningJournal: { ...formState.morningJournal },
+    eveningJournal: { ...formState.eveningJournal },
     savedAt:        Date.now(),
   };
   await db.entries.put(entry);
   todayEntry = entry;
   editMode   = false;
-  showToast('Day saved!');
+  showToast('Day saved ✓');
   initTodayView();
 }
 
@@ -355,6 +442,7 @@ async function initLogView() {
     const count    = countCompleted(entry);
     const hasEntry = !!entry;
     const dotClass = !hasEntry ? 'empty' : qualifies(entry) ? 'green' : 'red';
+    const fearIcon = hasEntry && entry.fearMapDone ? ' <span class="log-fear-icon" title="Fear Map done">🤝</span>' : '';
 
     let expandHtml = '';
     if (hasEntry) {
@@ -371,13 +459,27 @@ async function initLogView() {
         </div>`;
       }).join('');
 
-      expandHtml = `<div class="log-expand">${metaLine}${habitLines}</div>`;
+      // Journal entries in log
+      const mjLines = MORNING_JOURNAL_FIELDS
+        .filter(f => entry.morningJournal?.[f.key])
+        .map(f => `<div class="log-journal-item"><span class="log-journal-q">${esc(f.label)}</span><span class="log-journal-a">${esc(entry.morningJournal[f.key])}</span></div>`)
+        .join('');
+
+      const ejLines = EVENING_JOURNAL_FIELDS
+        .filter(f => entry.eveningJournal?.[f.key])
+        .map(f => `<div class="log-journal-item"><span class="log-journal-q">${esc(f.label)}</span><span class="log-journal-a">${esc(entry.eveningJournal[f.key])}</span></div>`)
+        .join('');
+
+      const mjSection = mjLines ? `<div class="log-journal-section"><div class="log-journal-title">Morning Journal</div>${mjLines}</div>` : '';
+      const ejSection = ejLines ? `<div class="log-journal-section"><div class="log-journal-title">Evening Journal</div>${ejLines}</div>` : '';
+
+      expandHtml = `<div class="log-expand">${metaLine}${habitLines}${mjSection}${ejSection}</div>`;
     }
 
     return `
       <div class="log-row" data-key="${key}">
         <div class="log-row-header">
-          <span class="log-date">${formatDateShort(key)}</span>
+          <span class="log-date">${formatDateShort(key)}${fearIcon}</span>
           <div class="log-right">
             <span class="log-ratio">${hasEntry ? `${count} / ${ALL_HABITS.length}` : '–'}</span>
             <div class="log-dot ${dotClass}"></div>
@@ -433,7 +535,7 @@ function initExportView() {
   view.innerHTML = `
     <div class="export-wrap">
       <div class="export-title">Export Data</div>
-      <div class="export-desc">Download all your logged days as a CSV file.<br>One row per day, one column per habit.</div>
+      <div class="export-desc">Download all your Daily Forge entries as a CSV file.</div>
       <button class="export-btn" id="export-btn">Export all data as CSV</button>
     </div>
   `;
@@ -441,23 +543,33 @@ function initExportView() {
 }
 
 async function exportCSV() {
-  const entries = await db.entries.orderBy('id').toArray();
+  const entries   = await db.entries.orderBy('id').toArray();
   const habitKeys = ALL_HABITS.map(h => h.key);
+  const mjKeys    = MORNING_JOURNAL_FIELDS.map(f => f.key);
+  const ejKeys    = EVENING_JOURNAL_FIELDS.map(f => f.key);
 
   const headers = [
     'date', 'wakeTime', 'lightsOffTime', 'bedTime',
     'fearMapDone', 'fearMapContact',
     ...habitKeys,
+    ...mjKeys,
+    ...ejKeys,
   ];
+
+  function csvText(val) {
+    return `"${String(val || '').replace(/"/g, '""')}"`;
+  }
 
   const csvRows = entries.map(e => [
     e.date,
-    e.wakeTime       || '',
-    e.lightsOffTime  || '',
-    e.bedTime        || '',
-    e.fearMapDone    ? 'true' : 'false',
-    `"${(e.fearMapContact || '').replace(/"/g, '""')}"`,
+    e.wakeTime      || '',
+    e.lightsOffTime || '',
+    e.bedTime       || '',
+    e.fearMapDone   ? 'true' : 'false',
+    csvText(e.fearMapContact),
     ...habitKeys.map(k => (e.routines?.[k] ? 'true' : 'false')),
+    ...mjKeys.map(k => csvText(e.morningJournal?.[k])),
+    ...ejKeys.map(k => csvText(e.eveningJournal?.[k])),
   ].join(','));
 
   const csv  = [headers.join(','), ...csvRows].join('\n');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daily-forge-v2';
+const CACHE_NAME = 'daily-forge-v3';
 const BASE = self.location.pathname.replace(/\/service-worker\.js$/, '');
 
 const LOCAL_ASSETS = [
